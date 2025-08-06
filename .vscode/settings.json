@@ -1,0 +1,14 @@
+{
+  "rust-analyzer.cargo.target": "x86_64-pc-windows-msvc",  // 明确指定与编译一致的目标平台
+  "rust-analyzer.procMacro.enable": true,  // 强制启用过程宏支持
+  "rust-analyzer.server.extraEnv": {
+    "CARGO_PROFILE_RELEASE_PANIC": "abort",
+    "CARGO_PROFILE_DEV_PANIC": "abort",
+    "RUSTFLAGS": "--cfg=tauri_unstable"  // 解决 Tauri 宏的不稳定特性识别问题
+  },
+  "emmet.includeLanguages": {
+    "rust": "html"
+  },
+  "rust-analyzer.checkOnSave.command": "clippy",
+  "rust-analyzer.diagnostics.disabled": ["unresolved-proc-macro"]
+}

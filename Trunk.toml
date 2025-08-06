@@ -1,0 +1,11 @@
+[build]
+target = "./index.html"
+dist = "dist"
+public_url = "./"  # 关键：使用相对路径，避免绝对路径导致的 MIME 错误
+
+[watch]
+ignore = ["Cargo.lock"]
+
+[serve]
+port = 1420
+open = false

@@ -22,12 +22,12 @@ impl AppState {
 
 static STATE: OnceCell<Mutex<AppState>> = OnceCell::new();
 
-// 调用前端回调（Tauri 2.7.0 兼容方式）
+// 调用前端回调（修复 Clippy 警告）
 fn call_js_callback<R: Runtime>(window: &WebviewWindow<R>, callback_name: &str, value: i32) {
-    // 直接通过 eval 调用前端挂载在 window 上的回调
+    // 修复：使用变量名直接格式化，去掉位置参数 {0} {1}
     let _ = window.eval(&format!(
-        "if (window.{0}) {{ window.{0}({1}); }}",
-        callback_name, value
+        "if (window.{}) {{ window.{}({}); }}",
+        callback_name, callback_name, value
     ));
 }
 
@@ -39,7 +39,6 @@ fn main() {
         .setup(|app| {
             let window = app.get_webview_window("main").expect("主窗口不存在");
             let state = STATE.get().unwrap().lock().unwrap();
-            // 初始化时同步时间到前端
             call_js_callback(&window, "timerUpdateCallback", state.remaining_seconds);
             Ok(())
         })
@@ -71,10 +70,15 @@ fn start_timer<R: Runtime>(window: WebviewWindow<R>) {
             call_js_callback(&window_clone, "timerUpdateCallback", remaining);
             STATE.get().unwrap().lock().unwrap().remaining_seconds = remaining;
             
+            // 修复：使用命名参数格式化（Clippy 建议）
+            println!("剩余时间: {remaining}");
+
             if remaining <= 0 {
                 // 计时结束
                 call_js_callback(&window_clone, "timerCompleteCallback", 0);
-                STATE.get().unwrap().lock().unwrap().timer_handle.take();
+                // 修复：先获取锁再清理任务句柄
+                let mut state = STATE.get().unwrap().lock().unwrap();
+                state.timer_handle.take();
                 break;
             }
         }

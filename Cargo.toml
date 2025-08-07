@@ -13,7 +13,7 @@ leptos_router = { version = "0.8.5" }
 leptos_dom = "0.8.5"
 
 # Tauri核心依赖
-tauri = "2.7.0"
+tauri = { version = "2.7.0"} 
 
 # 前端交互所需的 WASM 绑定
 # tauri-wasm = "2.7.0"

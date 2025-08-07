@@ -1,8 +1,7 @@
 use once_cell::sync::OnceCell;
 use std::sync::Mutex;
-use tauri::{Emitter, Manager, Runtime, WebviewWindow};
+use tauri::{Manager, Runtime, WebviewWindow};
 use tokio::time::{interval, Duration};
-
 
 #[derive(Debug)]
 struct AppState {
@@ -13,7 +12,7 @@ struct AppState {
 
 impl AppState {
     fn new(total_seconds: i32) -> Self {
-        AppState {
+        Self {
             remaining_seconds: total_seconds,
             total_seconds,
             timer_handle: None,
@@ -23,12 +22,13 @@ impl AppState {
 
 static STATE: OnceCell<Mutex<AppState>> = OnceCell::new();
 
-fn send_update_event<R: Runtime>(window: &WebviewWindow<R>, remaining: i32) {
-    let _ = window.emit("timer_update", remaining);
-}
-
-fn send_complete_event<R: Runtime>(window: &WebviewWindow<R>) {
-    let _ = window.emit("timer_complete", ());
+// 调用前端回调（Tauri 2.7.0 兼容方式）
+fn call_js_callback<R: Runtime>(window: &WebviewWindow<R>, callback_name: &str, value: i32) {
+    // 直接通过 eval 调用前端挂载在 window 上的回调
+    let _ = window.eval(&format!(
+        "if (window.{0}) {{ window.{0}({1}); }}",
+        callback_name, value
+    ));
 }
 
 fn main() {
@@ -39,60 +39,53 @@ fn main() {
         .setup(|app| {
             let window = app.get_webview_window("main").expect("主窗口不存在");
             let state = STATE.get().unwrap().lock().unwrap();
-            send_update_event(&window, state.remaining_seconds);
-            drop(state);
+            // 初始化时同步时间到前端
+            call_js_callback(&window, "timerUpdateCallback", state.remaining_seconds);
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![
-            start_timer,
-            pause_timer,
-            reset_timer
-        ])
+        .invoke_handler(tauri::generate_handler![start_timer, pause_timer, reset_timer])
         .run(tauri::generate_context!())
-        .expect("运行Tauri应用时出错");
+        .expect("运行Tauri应用失败");
 }
 
 #[tauri::command]
 fn start_timer<R: Runtime>(window: WebviewWindow<R>) {
     let mut state = STATE.get().unwrap().lock().unwrap();
     if state.timer_handle.is_some() {
-        return;
+        return; // 避免重复启动
     }
     
     let remaining = state.remaining_seconds;
-    let handle = tokio::spawn(async move {
+    let window_clone = window.clone();
+    
+    // 启动计时器任务
+    state.timer_handle = Some(tokio::spawn(async move {
         let mut interval = interval(Duration::from_secs(1));
         let mut remaining = remaining;
         
         loop {
             interval.tick().await;
-            
-            if remaining <= 0 {
-                send_complete_event(&window);
-                break;
-            }
-            
             remaining -= 1;
-            send_update_event(&window, remaining);
             
-            let mut state = STATE.get().unwrap().lock().unwrap();
-            state.remaining_seconds = remaining;
+            // 通知前端更新时间
+            call_js_callback(&window_clone, "timerUpdateCallback", remaining);
+            STATE.get().unwrap().lock().unwrap().remaining_seconds = remaining;
             
             if remaining <= 0 {
-                state.timer_handle.take();
+                // 计时结束
+                call_js_callback(&window_clone, "timerCompleteCallback", 0);
+                STATE.get().unwrap().lock().unwrap().timer_handle.take();
                 break;
             }
         }
-    });
-    
-    state.timer_handle = Some(handle);
+    }));
 }
 
 #[tauri::command]
 fn pause_timer() {
     let mut state = STATE.get().unwrap().lock().unwrap();
     if let Some(handle) = state.timer_handle.take() {
-        handle.abort();
+        handle.abort(); // 终止计时器任务
     }
 }
 
@@ -100,8 +93,9 @@ fn pause_timer() {
 fn reset_timer<R: Runtime>(window: WebviewWindow<R>) {
     let mut state = STATE.get().unwrap().lock().unwrap();
     if let Some(handle) = state.timer_handle.take() {
-        handle.abort();
+        handle.abort(); // 终止现有任务
     }
+    // 重置时间
     state.remaining_seconds = state.total_seconds;
-    send_update_event(&window, state.remaining_seconds);
+    call_js_callback(&window, "timerUpdateCallback", state.remaining_seconds);
 }

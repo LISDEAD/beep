@@ -5,16 +5,23 @@ target = "./index.html"
 dist = "dist"
 public_url = "./"  # 关键：使用相对路径，避免绝对路径导致的 MIME 错误
 
+# 配置静态资源处理方式，不添加哈希
+[assets]
+[[assets.copy]]
+src = "dist/tailwind.css"
+dest = "dist/tailwind.css"
+# 禁用哈希
+hash = false
+
 [watch]
-# 启动监听前先执行一次CSS生成
-before_watch = ["tailwindcss -i ./styles.css -o ./dist/tailwind.css --minify"]
 # 监听的文件路径
 paths = [
   "./src/**/*.rs",
   "./index.html",
   "./styles.css"
 ]
-
+# 启动监听前先执行一次CSS生成
+before_watch = ["tailwindcss.exe -i styles.css -o dist/tailwind.css --minify"]
 # 当监听的文件变化时执行的命令
 command = "tailwindcss -i ./styles.css -o ./dist/tailwind.css --minify"
 ignore = ["Cargo.lock"]

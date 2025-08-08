@@ -1,17 +1,17 @@
+use js_sys::Reflect;
 use leptos::prelude::*;
 use leptos_meta::*;
+use std::f64::consts::PI;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{self, HtmlInputElement, Event};
-use js_sys::Reflect;
-use std::f64::consts::PI;
+use web_sys::{self, Event, HtmlInputElement};
 
 const TOTAL_SECONDS: u32 = 60;
 
 #[component]
 pub fn App() -> impl IntoView {
     let (title, _set_title) = signal("计时器应用");
-    
+
     // 响应式状态
     let remaining_seconds = RwSignal::new(TOTAL_SECONDS);
     let is_running = RwSignal::new(false);
@@ -53,7 +53,7 @@ pub fn App() -> impl IntoView {
                     // 移除事件监听
                     let _ = window.remove_event_listener_with_callback(
                         "timer_update",
-                        callback.as_ref().unchecked_ref()
+                        callback.as_ref().unchecked_ref(),
                     );
                 }
             }
@@ -61,9 +61,9 @@ pub fn App() -> impl IntoView {
 
         // 强制转换闭包类型以满足Send + Sync约束
         let send_sync_closure = unsafe {
-            std::mem::transmute::<Box<dyn FnOnce()>, Box<dyn FnOnce() + Send + Sync>>(
-                Box::new(cleanup_closure)
-            )
+            std::mem::transmute::<Box<dyn FnOnce()>, Box<dyn FnOnce() + Send + Sync>>(Box::new(
+                cleanup_closure,
+            ))
         };
 
         // 注册清理函数
@@ -99,13 +99,16 @@ pub fn App() -> impl IntoView {
 
     let reset_timer = move |_| {
         call_backend("reset_timer");
-        remaining_seconds.set(total_seconds.get());
+        // 关键修改：将 .get() 改为 .get_untracked()
+        remaining_seconds.set(total_seconds.get_untracked());
         is_running.set(false);
     };
 
     // 更新总时间
     let update_total_time = move |ev: Event| {
-        let input = ev.target().and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
+        let input = ev
+            .target()
+            .and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
         if let Some(input) = input {
             if let Ok(value) = input.value().parse::<u32>() {
                 total_seconds.set(value);
@@ -120,7 +123,11 @@ pub fn App() -> impl IntoView {
     let stroke_dashoffset = move || {
         let remaining = remaining_seconds.get() as f64;
         let total = total_seconds.get() as f64;
-        if total == 0.0 { 0.0 } else { circumference * (1.0 - remaining / total) }
+        if total == 0.0 {
+            0.0
+        } else {
+            circumference * (1.0 - remaining / total)
+        }
     };
 
     view! {
@@ -129,8 +136,8 @@ pub fn App() -> impl IntoView {
             <div class="relative w-64 h-64 mb-8">
                 <svg class="w-full h-full" viewBox="0 0 240 240">
                     <circle cx="120" cy="120" r="100" fill="none" stroke="#e6e6e6" stroke-width="10"/>
-                    <circle 
-                        cx="120" cy="120" r="100" 
+                    <circle
+                        cx="120" cy="120" r="100"
                         fill="none" stroke="#3b82f6" stroke-width="10"
                         stroke-dasharray={format!("{}", circumference)}
                         stroke-dashoffset={stroke_dashoffset().to_string()}

@@ -1,10 +1,7 @@
-use leptos::prelude::*;
-use app::App;
+// src/lib.rs（修改后，删除 main 函数）
+// use leptos::prelude::*;
+// use app::App;
 
-mod app;
+// mod app;
 
-pub fn main() {
-    // 新版本挂载方式：不需要传递 cx 给组件
-    mount_to_body(App);
-}
-    
+// 仅保留模块导出，移除 main 函数

@@ -2,5 +2,5 @@
 rustflags = ["-C", "linker=rust-lld.exe"]
 
 [build]
-#target = "x86_64-pc-windows-gnu"
-jobs = 1  # 减少并行编译任务
+target = "x86_64-pc-windows-msvc" # Windows MSVC
+jobs = 1                          # 减少并行编译任务

@@ -1,142 +1,159 @@
-use js_sys::{eval, Reflect};
 use leptos::prelude::*;
-use std::f64::consts::PI;
-use tauri::Runtime;
-use wasm_bindgen::closure::Closure;
+use leptos_meta::*;
+use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use wasm_bindgen::JsValue;
-use web_sys::window;
+use web_sys::{self, HtmlInputElement, Event};
+use js_sys::Reflect;
+use std::f64::consts::PI;
+
+const TOTAL_SECONDS: u32 = 60;
 
 #[component]
 pub fn App() -> impl IntoView {
-    const TOTAL_SECONDS: i32 = 90 * 60; // 90分钟
+    let (title, _set_title) = signal("计时器应用");
+    
+    // 响应式状态
+    let remaining_seconds = RwSignal::new(TOTAL_SECONDS);
+    let is_running = RwSignal::new(false);
+    let total_seconds = RwSignal::new(TOTAL_SECONDS);
 
-    // Leptos信号
-    let (remaining_seconds, set_remaining_seconds) = signal(TOTAL_SECONDS);
-    let (is_running, set_is_running) = signal(false);
+    provide_meta_context();
 
-    // 格式化时间显示
-    let formatted_time = move || {
-        let mins = remaining_seconds.get() / 60;
-        let secs = remaining_seconds.get() % 60;
-        format!("{mins:02}:{secs:02}")
+    // 监听后端计时器更新事件
+    Effect::new(move |_| {
+        let window = web_sys::window().expect("Failed to get window");
+        let remaining = remaining_seconds.clone();
+        let running = is_running.clone();
+
+        // 创建事件回调
+        let callback = Closure::wrap(Box::new(move |event: Event| {
+            if let Ok(detail) = Reflect::get(&event, &"detail".into()) {
+                if let Some(value) = detail.as_f64() {
+                    remaining.set(value as u32);
+                    if value == 0.0 {
+                        running.set(false);
+                    }
+                }
+            }
+        }) as Box<dyn FnMut(Event)>);
+
+        // 保存回调的JS引用并注册事件
+        let js_callback = callback.as_ref().unchecked_ref::<js_sys::Function>();
+        let _ = window.add_event_listener_with_callback("timer_update", js_callback);
+
+        // 存储回调指针（明确指定类型）
+        let callback_ptr: *const Closure<dyn FnMut(Event)> = &callback;
+
+        // 创建清理闭包并强制转换为Send + Sync（WASM单线程环境安全）
+        let cleanup_closure = move || {
+            if let Some(window) = web_sys::window() {
+                unsafe {
+                    // 恢复回调引用（明确类型）
+                    let callback: &Closure<dyn FnMut(Event)> = &*callback_ptr;
+                    // 移除事件监听
+                    let _ = window.remove_event_listener_with_callback(
+                        "timer_update",
+                        callback.as_ref().unchecked_ref()
+                    );
+                }
+            }
+        };
+
+        // 强制转换闭包类型以满足Send + Sync约束
+        let send_sync_closure = unsafe {
+            std::mem::transmute::<Box<dyn FnOnce()>, Box<dyn FnOnce() + Send + Sync>>(
+                Box::new(cleanup_closure)
+            )
+        };
+
+        // 注册清理函数
+        on_cleanup(send_sync_closure);
+
+        // 确保回调生命周期
+        callback.forget();
+    });
+
+    // 调用后端命令
+    let call_backend = |cmd: &str| {
+        if let Some(window) = web_sys::window() {
+            if let Ok(tauri) = Reflect::get(&window, &"__TAURI__".into()) {
+                if let Ok(invoke) = Reflect::get(&tauri, &"invoke".into()) {
+                    if let Ok(invoke_fn) = invoke.dyn_into::<js_sys::Function>() {
+                        let _ = invoke_fn.call1(&JsValue::undefined(), &JsValue::from_str(cmd));
+                    }
+                }
+            }
+        }
+    };
+
+    // 计时器控制函数
+    let start_timer = move |_| {
+        call_backend("start_timer");
+        is_running.set(true);
+    };
+
+    let pause_timer = move |_| {
+        call_backend("pause_timer");
+        is_running.set(false);
+    };
+
+    let reset_timer = move |_| {
+        call_backend("reset_timer");
+        remaining_seconds.set(total_seconds.get());
+        is_running.set(false);
+    };
+
+    // 更新总时间
+    let update_total_time = move |ev: Event| {
+        let input = ev.target().and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
+        if let Some(input) = input {
+            if let Ok(value) = input.value().parse::<u32>() {
+                total_seconds.set(value);
+                remaining_seconds.set(value);
+                call_backend(&format!("set_total_seconds({})", value));
+            }
+        }
     };
 
     // 圆环进度计算
-    let circle_dashoffset = move || {
-        let circumference = 2.0 * PI * 100.0;
-        circumference * (1.0 - remaining_seconds.get() as f64 / TOTAL_SECONDS as f64)
-    };
-
-    // 注册JS回调（供后端调用）
-    Effect::new(move |_| {
-        let window = window().expect("获取窗口失败");
-        let set_remaining = set_remaining_seconds;
-        let set_running = set_is_running;
-
-        // 计时器更新回调
-        let update_callback = Closure::wrap(Box::new(move |remaining: i32| {
-            set_remaining.set(remaining);
-        }) as Box<dyn Fn(i32)>);
-
-        // 计时完成回调
-        let complete_callback = Closure::wrap(Box::new(move || {
-            set_running.set(false);
-        }) as Box<dyn Fn()>);
-
-        // 设置window属性 - 明确指定类型参数解决推断问题
-        unsafe {
-            // 将回调转换为JsValue，明确指定unchecked_ref的类型
-            let update_js: JsValue = update_callback
-                .as_ref()
-                .unchecked_ref::<js_sys::Function>()
-                .into();
-            let _ = Reflect::set(
-                &window,
-                &JsValue::from_str("timerUpdateCallback"),
-                &update_js,
-            );
-
-            let complete_js: JsValue = complete_callback
-                .as_ref()
-                .unchecked_ref::<js_sys::Function>()
-                .into();
-            let _ = Reflect::set(
-                &window,
-                &JsValue::from_str("timerCompleteCallback"),
-                &complete_js,
-            );
-        }
-
-        // 防止闭包被回收
-        update_callback.forget();
-        complete_callback.forget();
-    });
-    
-    // 替换原来的 call_backend 实现
-    let call_backend = |cmd: &str| {
-        let js_code = format!("window.__TAURI__.invoke('{}')", cmd);
-        let _ = eval(&js_code);
-    };
-
-    // 开始/暂停计时器
-    let toggle_timer = move |_| {
-        let running = is_running.get();
-        set_is_running.set(!running);
-
-        let cmd = if running {
-            "pause_timer"
-        } else {
-            "start_timer"
-        };
-        call_backend(cmd);
-    };
-
-    // 重置计时器
-    let reset_timer = move |_| {
-        set_is_running.set(false);
-        call_backend("reset_timer");
+    let circumference = 2.0 * PI * 100.0;
+    let stroke_dashoffset = move || {
+        let remaining = remaining_seconds.get() as f64;
+        let total = total_seconds.get() as f64;
+        if total == 0.0 { 0.0 } else { circumference * (1.0 - remaining / total) }
     };
 
     view! {
-        <div class="container flex flex-col items-center justify-center min-h-screen">
+        <Title text=title />
+        <main class="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
             <div class="relative w-64 h-64 mb-8">
-                {/* 圆环背景 */}
                 <svg class="w-full h-full" viewBox="0 0 240 240">
-                    <circle
-                        cx="120" cy="120" r="100"
-                        fill="none" stroke="#e6e6e6" stroke-width="10"
-                    />
-                    // 进度圆环
-                    <circle
-                        cx="120" cy="120" r="100"
+                    <circle cx="120" cy="120" r="100" fill="none" stroke="#e6e6e6" stroke-width="10"/>
+                    <circle 
+                        cx="120" cy="120" r="100" 
                         fill="none" stroke="#3b82f6" stroke-width="10"
-                        stroke-dasharray={move || format!("{}", 2.0 * PI * 100.0)}  // 改为信号绑定
-                        stroke-dashoffset={circle_dashoffset}
+                        stroke-dasharray={format!("{}", circumference)}
+                        stroke-dashoffset={stroke_dashoffset().to_string()}
+                        stroke-linecap="round"
                         transform="rotate(-90 120 120)"
                         class="transition-all duration-300 ease-in-out"
                     />
                 </svg>
-                {/* 时间显示 */}
-                <div class="absolute inset-0 flex items-center justify-center text-4xl font-bold">
-                    {formatted_time}
+                <div class="absolute inset-0 flex items-center justify-center text-4xl font-bold text-gray-800">
+                    {move || format!("{}s", remaining_seconds.get())}
                 </div>
             </div>
 
-            <div class="flex gap-4">
-                <button
-                    on:click=toggle_timer
-                    class="px-6 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600"
-                >
-                    {move || if is_running.get() { "暂停" } else { "开始" }}
-                </button>
-                <button
-                    on:click=reset_timer
-                    class="px-6 py-2 bg-gray-500 text-white rounded-full hover:bg-gray-600"
-                >
-                    "重置"
-                </button>
+            <div class="flex flex-wrap gap-4 justify-center mb-6">
+                <button on:click=start_timer disabled=move || is_running.get() class="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-400 transition-colors">"开始"</button>
+                <button on:click=pause_timer disabled=move || !is_running.get() class="px-6 py-2 bg-amber-600 text-white rounded-full hover:bg-amber-700 disabled:bg-gray-400 transition-colors">"暂停"</button>
+                <button on:click=reset_timer class="px-6 py-2 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors">"重置"</button>
             </div>
-        </div>
+
+            <div class="flex items-center gap-2">
+                <label for="total-time" class="text-gray-700">"总时间(秒):"</label>
+                <input id="total-time" type="number" value=move || total_seconds.get().to_string() on:change=update_total_time min="1" class="w-24 p-2 border border-gray-300 rounded"/>
+            </div>
+        </main>
     }
 }

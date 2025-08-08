@@ -1,9 +1,22 @@
 [build]
+# 构建前执行Tailwind生成CSS
+before_build = ["tailwindcss -i ./styles.css -o ./dist/tailwind.css --minify"]
 target = "./index.html"
 dist = "dist"
 public_url = "./"  # 关键：使用相对路径，避免绝对路径导致的 MIME 错误
 
 [watch]
+# 启动监听前先执行一次CSS生成
+before_watch = ["tailwindcss -i ./styles.css -o ./dist/tailwind.css --minify"]
+# 监听的文件路径
+paths = [
+  "./src/**/*.rs",
+  "./index.html",
+  "./styles.css"
+]
+
+# 当监听的文件变化时执行的命令
+command = "tailwindcss -i ./styles.css -o ./dist/tailwind.css --minify"
 ignore = ["Cargo.lock"]
 
 [serve]

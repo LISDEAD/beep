@@ -131,36 +131,36 @@ pub fn App() -> impl IntoView {
     };
 
     view! {
-        <Title text=title />
-        <main class="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
-            <div class="relative w-64 h-64 mb-8">
-                <svg class="w-full h-full" viewBox="0 0 240 240">
-                    <circle cx="120" cy="120" r="100" fill="none" stroke="#e6e6e6" stroke-width="10"/>
-                    <circle
-                        cx="120" cy="120" r="100"
-                        fill="none" stroke="#3b82f6" stroke-width="10"
-                        stroke-dasharray={format!("{}", circumference)}
-                        stroke-dashoffset={stroke_dashoffset().to_string()}
-                        stroke-linecap="round"
-                        transform="rotate(-90 120 120)"
-                        class="transition-all duration-300 ease-in-out"
-                    />
-                </svg>
-                <div class="absolute inset-0 flex items-center justify-center text-4xl font-bold text-gray-800">
-                    {move || format!("{}s", remaining_seconds.get())}
+            <Title text=title />
+            <main class="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
+                <div class="relative w-64 h-64 mb-8">
+                    <svg class="w-full h-full" viewBox="0 0 240 240">
+                        <circle cx="120" cy="120" r="100" fill="none" stroke="#e6e6e6" stroke-width="10"/>
+                        <circle
+                            cx="120" cy="120" r="100"
+                            fill="none" stroke="#3b82f6" stroke-width="10"
+                            stroke-dasharray={format!("{}", circumference)}
+                            stroke-dashoffset={move || stroke_dashoffset().to_string()}  // 使用闭包
+                            stroke-linecap="round"
+                            transform="rotate(-90 120 120)"
+                            class="transition-all duration-300 ease-in-out"
+                        />
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center text-4xl font-bold text-gray-800">
+                        {move || format!("{}s", remaining_seconds.get())}
+                    </div>
                 </div>
-            </div>
 
-            <div class="flex flex-wrap gap-4 justify-center mb-6">
-                <button on:click=start_timer disabled=move || is_running.get() class="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-400 transition-colors">"开始"</button>
-                <button on:click=pause_timer disabled=move || !is_running.get() class="px-6 py-2 bg-amber-600 text-white rounded-full hover:bg-amber-700 disabled:bg-gray-400 transition-colors">"暂停"</button>
-                <button on:click=reset_timer class="px-6 py-2 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors">"重置"</button>
-            </div>
+                <div class="flex flex-wrap gap-4 justify-center mb-6">
+                    <button on:click=start_timer disabled=move || is_running.get() class="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-400 transition-colors">"开始"</button>
+                    <button on:click=pause_timer disabled=move || !is_running.get() class="px-6 py-2 bg-amber-600 text-white rounded-full hover:bg-amber-700 disabled:bg-gray-400 transition-colors">"暂停"</button>
+                    <button on:click=reset_timer class="px-6 py-2 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors">"重置"</button>
+                </div>
 
-            <div class="flex items-center gap-2">
-                <label for="total-time" class="text-gray-700">"总时间(秒):"</label>
-                <input id="total-time" type="number" value=move || total_seconds.get().to_string() on:change=update_total_time min="1" class="w-24 p-2 border border-gray-300 rounded"/>
-            </div>
-        </main>
-    }
+                <div class="flex items-center gap-2">
+                    <label for="total-time" class="text-gray-700">"总时间(秒):"</label>
+                    <input id="total-time" type="number" value=move || total_seconds.get().to_string() on:change=update_total_time min="1" class="w-24 p-2 border border-gray-300 rounded"/>
+                </div>
+            </main>
+        }
 }

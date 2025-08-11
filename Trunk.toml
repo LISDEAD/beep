@@ -1,31 +1,28 @@
 [build]
-# 构建前执行Tailwind生成CSS
-before_build = ["tailwindcss -i ./styles.css -o ./dist/tailwind.css --minify"]
 target = "./index.html"
 dist = "dist"
-public_url = "./"  # 关键：使用相对路径，避免绝对路径导致的 MIME 错误
+public_url = "./"      
+hash = false  # 禁用哈希，保持文件名稳定                                                        
 
-# 配置静态资源处理方式，不添加哈希
 [assets]
 [[assets.copy]]
 src = "dist/tailwind.css"
-dest = "dist/tailwind.css"
-# 禁用哈希
-hash = false
+dest = "tailwind.css"  # 简化目标路径，避免 dist 嵌套hash = false  # 禁用哈希，保持文件名稳定# 直接引用生成的 tailwind.css，无需额外复制（Trunk 会自动处理 dist 目录）
 
 [watch]
-# 监听的文件路径
 paths = [
   "./src/**/*.rs",
   "./index.html",
-  "./styles.css"
+  "./styles.css",
+  "./tailwind.config.js"
 ]
-# 启动监听前先执行一次CSS生成
-before_watch = ["tailwindcss.exe -i styles.css -o dist/tailwind.css --minify"]
-# 当监听的文件变化时执行的命令
-command = "tailwindcss -i ./styles.css -o ./dist/tailwind.css --minify"
-ignore = ["Cargo.lock"]
+before_build = ["./tailwindcss.exe -i styles.css -o dist/tailwind.css --minify"]
+command = "./tailwindcss -i ./styles.css -o ./dist/tailwind.css --minify"
+ignore = ["Cargo.lock", "dist/"]  # 忽略生成目录，避免循环触发
 
+# 监听的文件路径
+# 启动监听前先执行一次CSS生成
+# 当监听的文件变化时执行的命令
 [serve]
 port = 1420
 open = false

@@ -7,7 +7,6 @@ hash = false  # 禁用哈希，保持文件名稳定
 [assets]
 [[assets.copy]]
 src = "dist/tailwind.css"
-dest = "tailwind.css"  # 简化目标路径，避免 dist 嵌套hash = false  # 禁用哈希，保持文件名稳定# 直接引用生成的 tailwind.css，无需额外复制（Trunk 会自动处理 dist 目录）
 
 [watch]
 paths = [

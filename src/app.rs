@@ -44,13 +44,11 @@ pub fn App() -> impl IntoView {
         // 存储回调指针（明确指定类型）
         let callback_ptr: *const Closure<dyn FnMut(Event)> = &callback;
 
-        // 创建清理闭包并强制转换为Send + Sync（WASM单线程环境安全）
+        // 创建清理闭包
         let cleanup_closure = move || {
             if let Some(window) = web_sys::window() {
                 unsafe {
-                    // 恢复回调引用（明确类型）
                     let callback: &Closure<dyn FnMut(Event)> = &*callback_ptr;
-                    // 移除事件监听
                     let _ = window.remove_event_listener_with_callback(
                         "timer_update",
                         callback.as_ref().unchecked_ref(),
@@ -99,7 +97,6 @@ pub fn App() -> impl IntoView {
 
     let reset_timer = move |_| {
         call_backend("reset_timer");
-        // 关键修改：将 .get() 改为 .get_untracked()
         remaining_seconds.set(total_seconds.get_untracked());
         is_running.set(false);
     };
@@ -140,13 +137,14 @@ pub fn App() -> impl IntoView {
                             cx="120" cy="120" r="100"
                             fill="none" stroke="#3b82f6" stroke-width="10"
                             stroke-dasharray={format!("{}", circumference)}
-                            stroke-dashoffset={move || stroke_dashoffset().to_string()}  // 使用闭包
+                            stroke-dashoffset={move || stroke_dashoffset().to_string()}
                             stroke-linecap="round"
                             transform="rotate(-90 120 120)"
                             class="transition-all duration-300 ease-in-out"
                         />
                     </svg>
-                    <div class="absolute inset-0 flex items-center justify-center text-4xl font-bold text-gray-800">
+                    // 修复倒计时文字显示：强制对比色 
+                    <div class="absolute inset-0 flex items-center justify-center text-4xl font-bold text-gray-800 dark:text-white">
                         {move || format!("{}s", remaining_seconds.get())}
                     </div>
                 </div>
@@ -158,8 +156,8 @@ pub fn App() -> impl IntoView {
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <label for="total-time" class="text-gray-700">"总时间(秒):"</label>
-                    <input id="total-time" type="number" value=move || total_seconds.get().to_string() on:change=update_total_time min="1" class="w-24 p-2 border border-gray-300 rounded"/>
+                    <label for="total-time" class="text-gray-700 dark:text-gray-300">"总时间(秒):"</label>
+                    <input id="total-time" type="number" value=move || total_seconds.get().to_string() on:change=update_total_time min="1" class="w-24 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"/>
                 </div>
             </main>
         }

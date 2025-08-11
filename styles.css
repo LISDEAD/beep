@@ -1,21 +1,9 @@
+/* 仅保留必要样式，删除与Tailwind冲突的全局背景/颜色设置 */
 .logo.leptos:hover {
   filter: drop-shadow(0 0 2em #a82e20);
 }
-:root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
 
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-}
+/* 移除 :root 和深色模式的全局背景/颜色定义，避免覆盖Tailwind */
 
 .container {
   margin: 0;
@@ -56,6 +44,7 @@ h1 {
   text-align: center;
 }
 
+/* 保留基础表单样式，但不设置全局背景色 */
 input,
 button {
   border-radius: 8px;
@@ -64,8 +53,6 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
   transition: border-color 0.25s;
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
 }
@@ -79,7 +66,6 @@ button:hover {
 }
 button:active {
   border-color: #396cd8;
-  background-color: #e8e8e8;
 }
 
 input,
@@ -91,22 +77,4 @@ button {
   margin-right: 5px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
-  }
-
-  a:hover {
-    color: #24c8db;
-  }
-
-  input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
-  }
-  button:active {
-    background-color: #0f0f0f69;
-  }
-}
+/* 移除深色模式的全局背景/颜色覆盖，改用Tailwind的dark类 */

@@ -1,5 +1,5 @@
 // 添加必要的导入
-use tauri::{Emitter, State, AppHandle};  // 关键：导入 Emitter trait
+use tauri::{Emitter, State, AppHandle};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -25,16 +25,20 @@ fn main() {
         .expect("error while running tauri application");
 }
 
-// 示例：修复 start_timer 命令
+// 修复start_timer命令（核心功能修复）
 #[tauri::command]
 fn start_timer(app: AppHandle, state: State<Arc<Mutex<TimerState>>>) {
-    // 正确克隆 Arc（注意：state 是 State<Arc<Mutex<TimerState>>> 类型）
-    let state_ptr = Arc::clone(&state.inner());  // 关键：通过 .inner() 获取 Arc 引用
+    let state_ptr = Arc::clone(&state.inner());
     let app_clone = app.clone();
+
+    // 启动前先设置为运行状态（关键修复）
+    {
+        let mut current_state = state_ptr.lock().unwrap();
+        current_state.is_running = true;
+    }
 
     thread::spawn(move || {
         loop {
-            // 锁定状态（获取 MutexGuard）
             let mut current_state = state_ptr.lock().unwrap();
             
             if !current_state.is_running {
@@ -43,9 +47,9 @@ fn start_timer(app: AppHandle, state: State<Arc<Mutex<TimerState>>>) {
             
             if current_state.remaining_seconds > 0 {
                 current_state.remaining_seconds -= 1;
-                // 发送更新事件（使用 emit_to，需要 Emitter trait）
+                // 发送更新事件到前端
                 let _ = app_clone.emit_to(
-                    "main",  // 窗口标签
+                    "main",
                     "timer_update", 
                     current_state.remaining_seconds
                 );
@@ -54,20 +58,20 @@ fn start_timer(app: AppHandle, state: State<Arc<Mutex<TimerState>>>) {
                 break;
             }
             
-            // 释放锁，避免阻塞
-            drop(current_state);
+            drop(current_state);  // 释放锁，避免阻塞
             thread::sleep(Duration::from_secs(1));
         }
     });
 }
 
-// 其他命令（pause_timer/reset_timer/set_total_seconds）采用相同模式修复
+// 暂停计时器
 #[tauri::command]
 fn pause_timer(state: State<Arc<Mutex<TimerState>>>) {
     let mut current_state = state.inner().lock().unwrap();
     current_state.is_running = false;
 }
 
+// 重置计时器
 #[tauri::command]
 fn reset_timer(state: State<Arc<Mutex<TimerState>>>) {
     let mut current_state = state.inner().lock().unwrap();
@@ -75,6 +79,7 @@ fn reset_timer(state: State<Arc<Mutex<TimerState>>>) {
     current_state.is_running = false;
 }
 
+// 设置总时间
 #[tauri::command]
 fn set_total_seconds(state: State<Arc<Mutex<TimerState>>>, seconds: u32) {
     let mut current_state = state.inner().lock().unwrap();

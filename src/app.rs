@@ -137,7 +137,7 @@ pub fn App() -> impl IntoView {
                             <circle cx="20" cy="20" r="10" fill="none" stroke="#e6e6e6" stroke-width="1"/> // 极细线条（2px）
                             <circle
                                 cx="20" cy="20" r="10" // 匹配极小容器的半径
-                                fill="none" stroke="#4671F5" stroke-width="1" // 保持线条粗细
+                                fill="none" stroke="#3b82f6" stroke-width="1" // 保持线条粗细
                                 stroke-dasharray={format!("{}", 2.0 * PI * 16.0)} // 重新计算周长
                                 stroke-dashoffset={move || {
                                     let remaining = remaining_seconds.get() as f64;

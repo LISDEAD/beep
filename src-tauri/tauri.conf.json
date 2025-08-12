@@ -4,9 +4,9 @@
   "version": "0.0.2",
   "identifier": "co.beep.tda",
   "build": {
-    "beforeDevCommand": "tailwindcss.exe -i styles.css -o dist/tailwind.css --minify && trunk serve --verbose",
+    "beforeDevCommand": "npx tailwindcss -i styles.css -o dist/tailwind.css --minify && trunk serve --verbose",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "tailwindcss.exe -i styles.css -o dist/tailwind.css --minify && trunk build",
+    "beforeBuildCommand": "npx tailwindcss -i styles.css -o dist/tailwind.css --minify && trunk build",
     "frontendDist": "../dist"
   },
   "app": {

@@ -7,6 +7,7 @@ hash = false  # 禁用哈希，保持文件名稳定
 [assets]
 [[assets.copy]]
 src = "dist/tailwind.css"
+dest = "dist/"  # 明确指定目标目录（可选，确保与引用一致）
 
 [watch]
 paths = [
@@ -15,8 +16,9 @@ paths = [
   "./styles.css",
   "./tailwind.config.js"
 ]
-before_build = ["./tailwindcss.exe -i styles.css -o dist/tailwind.css --minify"]
-command = "./tailwindcss -i ./styles.css -o ./dist/tailwind.css --minify"
+# 确保命令能在 Windows 上正确执行（使用 npx 避免路径问题）
+before_build = ["npx tailwindcss -i styles.css -o dist/tailwind.css --minify"]
+command = "npx tailwindcss -i styles.css -o dist/tailwind.css --minify"
 ignore = ["Cargo.lock", "dist/"]  # 忽略生成目录，避免循环触发
 
 # 监听的文件路径

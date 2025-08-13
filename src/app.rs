@@ -130,9 +130,10 @@ pub fn App() -> impl IntoView {
     view! {
         <Title text=title />
         // 使用容器类确保整体居中
-        <main class="container min-h-screen">
+        <main class="container min-h-screen flex flex-col items-center justify-center bg-gray-50 p-1 pt-0">
                 // 彻底修复下方元素居中问题，确保与圆环严格对齐
-    <div class="relative w-6 h-6 mb-8 mx-auto"> // 圆环容器自身也添加mx-auto确保居中
+    <div class="relative w-6 h-6">
+    // 圆环容器自身也添加mx-auto确保居中
       <svg class="absolute inset-0 w-full h-full" viewBox="0 0 40 40">
         // 定义阴影滤镜
         <defs>

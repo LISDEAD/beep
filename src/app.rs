@@ -128,39 +128,38 @@ pub fn App() -> impl IntoView {
     };
 
     view! {
-                    <Title text=title />
-                    <main class="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
-                    // 极小尺寸的圆环和文字部分（再缩小一倍）
-                    <div class="relative w-6 h-6 mb-2"> // 容器缩小到24px×24px（之前的一半）
-                        // SVG圆环 - 匹配极小容器
-                        <svg class="absolute inset-0 w-full h-full" viewBox="0 0 40 40"> // 视口同步缩小
-                            <circle cx="20" cy="20" r="10" fill="none" stroke="#e6e6e6" stroke-width="1"/> // 极细线条（2px）
-                            <circle
-                                cx="20" cy="20" r="10" // 匹配极小容器的半径
-                                fill="none" stroke="#3b82f6" stroke-width="1" // 保持线条粗细
-                                stroke-dasharray={format!("{}", 2.0 * PI * 16.0)} // 重新计算周长
-                                stroke-dashoffset={move || {
-                                    let remaining = remaining_seconds.get() as f64;
-                                    let total = total_seconds.get() as f64;
-                                    if total == 0.0 {
-                                        0.0
-                                    } else {
-                                        2.0 * PI * 16.0 * (1.0 - remaining / total)
-                                    }
-                                }.to_string()}
-                                stroke-linecap="round"
-                                transform="rotate(-90 20 20)" // 旋转中心匹配新视口
-                                class="transition-all duration-300 ease-in-out"
-                            />
-                        </svg>
-                        
-                        // 保持文字大小不变
-                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;">
-                            <span class="text-xl md:text-2xl font-bold text-gray-800 dark:text-white font-mono">
-                                {move || format!("{}s", remaining_seconds.get())}
-                            </span>
-                        </div>
-                    </div>
+        <Title text=title />
+        <main class="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
+        // 极小尺寸的圆环和文字部分（再缩小一倍）
+        <div class="relative w-6 h-6 mb-2"> // 容器缩小到24px×24px（之前的一半）
+            // SVG圆环 - 匹配极小容器
+            <svg class="absolute inset-0 w-full h-full" viewBox="0 0 40 40"> // 视口同步缩小
+            // 保持文字大小不变
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;">
+                <span class="text-xl md:text-2xl font-bold text-gray-800 dark:text-white font-mono">
+                    {move || format!("{}s", remaining_seconds.get())}
+                </span>
+            </div>
+                <circle cx="20" cy="20" r="10" fill="none" stroke="#e6e6e6" stroke-width="1"/> // 极细线条（2px）
+                <circle
+                    cx="20" cy="20" r="10" // 匹配极小容器的半径
+                    fill="none" stroke="#3b82f6" stroke-width="1" // 保持线条粗细
+                    stroke-dasharray={format!("{}", 2.0 * PI * 16.0)} // 重新计算周长
+                    stroke-dashoffset={move || {
+                        let remaining = remaining_seconds.get() as f64;
+                        let total = total_seconds.get() as f64;
+                        if total == 0.0 {
+                            0.0
+                        } else {
+                            2.0 * PI * 16.0 * (1.0 - remaining / total)
+                        }
+                    }.to_string()}
+                    stroke-linecap="round"
+                    transform="rotate(-90 20 20)" // 旋转中心匹配新视口
+                    class="transition-all duration-300 ease-in-out"
+                />
+            </svg>
+        </div>
 
 
 
@@ -170,18 +169,18 @@ pub fn App() -> impl IntoView {
 
 
 
-                        {/* 修复按钮容器居中 */}
-                        <div class="flex flex-wrap gap-4 justify-center mb-8">  // 增加底部间距
-                            <button on:click=start_timer disabled=move || is_running.get() class="px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-400 transition-colors">"开始"</button>
-                            <button on:click=pause_timer disabled=move || !is_running.get() class="px-6 py-3 bg-amber-600 text-white rounded-full hover:bg-amber-700 disabled:bg-gray-400 transition-colors">"暂停"</button>
-                            <button on:click=reset_timer class="px-6 py-3 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors">"重置"</button>
-                        </div>
+            {/* 修复按钮容器居中 */}
+            <div class="flex flex-wrap gap-4 justify-center mb-8">  // 增加底部间距
+                <button on:click=start_timer disabled=move || is_running.get() class="px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-400 transition-colors">"开始"</button>
+                <button on:click=pause_timer disabled=move || !is_running.get() class="px-6 py-3 bg-amber-600 text-white rounded-full hover:bg-amber-700 disabled:bg-gray-400 transition-colors">"暂停"</button>
+                <button on:click=reset_timer class="px-6 py-3 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors">"重置"</button>
+            </div>
 
-                        {/* 修复输入区样式 */}
-                        <div class="flex items-center gap-3 p-2">  // 增加间距和内边距
-                            <label for="total-time" class="text-gray-700 dark:text-gray-300 text-lg">"总时间(秒):"</label>
-                            <input id="total-time" type="number" value=move || total_seconds.get().to_string() on:change=update_total_time min="1" class="w-28 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-lg"/>
-                        </div>
-                    </main>
-                }
+            {/* 修复输入区样式 */}
+            <div class="flex items-center gap-3 p-2">  // 增加间距和内边距
+                <label for="total-time" class="text-gray-700 dark:text-gray-300 text-lg">"总时间(秒):"</label>
+                <input id="total-time" type="number" value=move || total_seconds.get().to_string() on:change=update_total_time min="1" class="w-28 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-lg"/>
+            </div>
+        </main>
+    }
 }

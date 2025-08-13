@@ -41,7 +41,7 @@ pub fn App() -> impl IntoView {
         let js_callback = callback.as_ref().unchecked_ref::<js_sys::Function>();
         let _ = window.add_event_listener_with_callback("timer_update", js_callback);
 
-        // 存储回调指针（明确指定类型）
+        // 存储回调指针
         let callback_ptr: *const Closure<dyn FnMut(Event)> = &callback;
 
         // 创建清理闭包
@@ -71,37 +71,42 @@ pub fn App() -> impl IntoView {
         callback.forget();
     });
 
-    // 调用后端命令
-    let call_backend = |cmd: &str| {
+    // 修复：调用后端命令（支持带参数）
+    let call_backend = |cmd: &str, args: Option<js_sys::Object>| {
         if let Some(window) = web_sys::window() {
             if let Ok(tauri) = Reflect::get(&window, &"__TAURI__".into()) {
                 if let Ok(invoke) = Reflect::get(&tauri, &"invoke".into()) {
                     if let Ok(invoke_fn) = invoke.dyn_into::<js_sys::Function>() {
-                        let _ = invoke_fn.call1(&JsValue::undefined(), &JsValue::from_str(cmd));
+                        let args = if let Some(args) = args {
+                            js_sys::Array::of2(&JsValue::from_str(cmd), &JsValue::from(args))
+                        } else {
+                            js_sys::Array::of1(&JsValue::from_str(cmd))
+                        };
+                        let _ = invoke_fn.apply(&JsValue::undefined(), &args);
                     }
                 }
             }
         }
     };
 
-    // 计时器控制函数
+    // 计时器控制函数（修复调用方式）
     let start_timer = move |_| {
-        call_backend("start_timer");
+        call_backend("start_timer", None);
         is_running.set(true);
     };
 
     let pause_timer = move |_| {
-        call_backend("pause_timer");
+        call_backend("pause_timer", None);
         is_running.set(false);
     };
 
     let reset_timer = move |_| {
-        call_backend("reset_timer");
+        call_backend("reset_timer", None);
         remaining_seconds.set(total_seconds.get_untracked());
         is_running.set(false);
     };
 
-    // 更新总时间
+    // 更新总时间（修复参数传递）
     let update_total_time = move |ev: Event| {
         let input = ev
             .target()
@@ -110,12 +115,16 @@ pub fn App() -> impl IntoView {
             if let Ok(value) = input.value().parse::<u32>() {
                 total_seconds.set(value);
                 remaining_seconds.set(value);
-                call_backend(&format!("set_total_seconds({})", value));
+                
+                // 正确传递参数
+                let args = js_sys::Object::new();
+                let _ = Reflect::set(&args, &"seconds".into(), &JsValue::from(value));
+                call_backend("set_total_seconds", Some(args));
             }
         }
     };
 
-    // 圆环进度计算 - 恢复原始尺寸计算
+    // 圆环进度计算
     let circumference = 2.0 * PI * 100.0;
     let stroke_dashoffset = move || {
         let remaining = remaining_seconds.get() as f64;

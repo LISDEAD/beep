@@ -1,5 +1,4 @@
-// 添加必要的导入
-use tauri::{Emitter, State, AppHandle};
+use tauri::{State, AppHandle, Emitter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -25,13 +24,13 @@ fn main() {
         .expect("error while running tauri application");
 }
 
-// 修复start_timer命令（核心功能修复）
+// 修复start_timer命令（完全适配Tauri 2.7.0）
 #[tauri::command]
 fn start_timer(app: AppHandle, state: State<Arc<Mutex<TimerState>>>) {
     let state_ptr = Arc::clone(&state.inner());
     let app_clone = app.clone();
 
-    // 启动前先设置为运行状态（关键修复）
+    // 启动前先设置为运行状态
     {
         let mut current_state = state_ptr.lock().unwrap();
         current_state.is_running = true;
@@ -47,12 +46,11 @@ fn start_timer(app: AppHandle, state: State<Arc<Mutex<TimerState>>>) {
             
             if current_state.remaining_seconds > 0 {
                 current_state.remaining_seconds -= 1;
-                // 发送更新事件到前端
-                let _ = app_clone.emit_to(
-                    "main",
-                    "timer_update", 
-                    current_state.remaining_seconds
-                );
+                let remaining = current_state.remaining_seconds;
+                
+                // Tauri 2.7.0 正确的事件发送方式
+                // 使用默认窗口标签 "main"（大多数Tauri应用的默认值）
+                let _ = app_clone.emit_to("main", "timer_update", remaining);
             } else {
                 current_state.is_running = false;
                 break;
@@ -86,3 +84,4 @@ fn set_total_seconds(state: State<Arc<Mutex<TimerState>>>, seconds: u32) {
     current_state.total_seconds = seconds;
     current_state.remaining_seconds = seconds;
 }
+    

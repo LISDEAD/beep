@@ -115,8 +115,8 @@ pub fn App() -> impl IntoView {
         }
     };
 
-    // 圆环进度计算
-    let circumference = 2.0 * PI * 10.0;
+    // 圆环进度计算 - 恢复原始尺寸计算
+    let circumference = 2.0 * PI * 100.0;
     let stroke_dashoffset = move || {
         let remaining = remaining_seconds.get() as f64;
         let total = total_seconds.get() as f64;
@@ -128,9 +128,10 @@ pub fn App() -> impl IntoView {
     };
 
     view! {
-            <Title text=title />
-            <main class="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
-    // 彻底修复下方元素居中问题，确保与圆环严格对齐
+        <Title text=title />
+        // 使用容器类确保整体居中
+        <main class="container min-h-screen">
+                // 彻底修复下方元素居中问题，确保与圆环严格对齐
     <div class="relative w-6 h-6 mb-8 mx-auto"> // 圆环容器自身也添加mx-auto确保居中
       <svg class="absolute inset-0 w-full h-full" viewBox="0 0 40 40">
         // 定义阴影滤镜
@@ -140,8 +141,10 @@ pub fn App() -> impl IntoView {
           </filter>
         </defs>
 
+
         // 背景圆环
         <circle cx="20" cy="20" r="10" fill="none" stroke="#e6e6e6" stroke-width="1"/>
+
 
         // 进度圆环
         <circle
@@ -153,6 +156,7 @@ pub fn App() -> impl IntoView {
           transform="rotate(-90 20 20)"
           class="transition-all duration-300 ease-in-out"
         />
+
 
         // 倒计时文字
         <text
@@ -170,18 +174,46 @@ pub fn App() -> impl IntoView {
       </svg>
     </div>
 
-    // 按钮容器 - 强制居中方案
-    <div class="flex flex-wrap gap-4 justify-center mb-6 w-full max-w-sm mx-auto"> // 增加mx-auto并设置合适max-w
-      <button on:click=start_timer disabled=move || is_running.get() class="px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-400 transition-colors">"开始"</button>
-      <button on:click=pause_timer disabled=move || !is_running.get() class="px-6 py-3 bg-amber-600 text-white rounded-full hover:bg-amber-700 disabled:bg-gray-400 transition-colors">"暂停"</button>
-      <button on:click=reset_timer class="px-6 py-3 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors">"重置"</button>
-    </div>
 
-    // 输入区 - 强制居中方案
-    <div class="flex items-center gap-3 p-2 justify-center w-full max-w-sm mx-auto"> // 增加mx-auto并匹配max-w
-      <label for="total-time" class="text-gray-700 dark:text-gray-300 text-lg">"总时间(秒):"</label>
-      <input id="total-time" type="number" value=move || total_seconds.get().to_string() on:change=update_total_time min="1" class="w-28 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-lg"/>
-    </div>
-            </main>
-        }
+            {/* 按钮和输入框区域 - 确保居中 */}
+            <div class="flex flex-col items-center gap-6">
+                // 按钮组
+                <div class="flex flex-wrap gap-4 justify-center">
+                    <button
+                        on:click=start_timer
+                        disabled=move || is_running.get()
+                        class="px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+                    >
+                        "开始"
+                    </button>
+                    <button
+                        on:click=pause_timer
+                        disabled=move || !is_running.get()
+                        class="px-6 py-3 bg-amber-600 text-white rounded-full hover:bg-amber-700 disabled:bg-gray-400 transition-colors"
+                    >
+                        "暂停"
+                    </button>
+                    <button
+                        on:click=reset_timer
+                        class="px-6 py-3 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors"
+                    >
+                        "重置"
+                    </button>
+                </div>
+
+                // 输入区
+                <div class="flex items-center gap-3 p-2 w-full max-w-xs">
+                    <label for="total-time" class="text-gray-700 dark:text-gray-300 text-lg">"总时间(秒):"</label>
+                    <input
+                        id="total-time"
+                        type="number"
+                        value=move || total_seconds.get().to_string()
+                        on:change=update_total_time
+                        min="1"
+                        class="w-28 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-lg"
+                    />
+                </div>
+            </div>
+        </main>
+    }
 }

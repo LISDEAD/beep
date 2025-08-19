@@ -4,7 +4,7 @@ use std::thread;
 use std::time::Duration;
 
 // 修正导入语句，Tauri v2中run函数位于tauri::Builder
-use tauri::{command, AppHandle, Emitter, Builder};
+use tauri::{command, AppHandle, Emitter, Builder, Runtime};
 
 // 定义计时器状态结构体
 #[derive(Default)]
@@ -14,9 +14,17 @@ struct TimerState {
     is_running: bool,
 }
 
+// 删除重复的run函数定义
+
+// 测试命令 - 用于前端验证Tauri API连接
+#[command]
+fn ping(message: String) -> Result<String, String> {
+    Ok(format!("Pong: {}", message))
+}
+
 // 启动计时器
 #[command]
-fn start_timer(app: AppHandle, state: tauri::State<Arc<Mutex<TimerState>>>) -> Result<(), String> {
+fn start_timer(app: AppHandle, state: tauri::State<Arc<Mutex<TimerState>>>, seconds: u32) -> Result<(), String> {
     let state_clone = Arc::clone(&state.inner());
     let app_clone = app.clone();
 
@@ -24,6 +32,8 @@ fn start_timer(app: AppHandle, state: tauri::State<Arc<Mutex<TimerState>>>) -> R
     if current_state.is_running {
         return Ok(());
     }
+    current_state.remaining_seconds = seconds;
+    current_state.total_seconds = seconds;
     current_state.is_running = true;
     drop(current_state);
 
@@ -85,11 +95,15 @@ fn set_total_seconds(state: tauri::State<Arc<Mutex<TimerState>>>, seconds: u32) 
     Ok(())
 }
 
+// 删除重复的ping函数定义
+
 // 触发通知
 #[command]
 fn trigger_notification() -> Result<(), String> {
     #[cfg(windows)]
     {
+        use std::process::Command;
+
         Command::new("powershell")
             .args(&[
                 "-Command",
@@ -123,13 +137,7 @@ pub fn run() {
     // 使用Builder构建并运行应用，适应Tauri v2的API变化
     Builder::default()
         .manage(Arc::new(Mutex::new(TimerState::default())))
-        .invoke_handler(tauri::generate_handler![
-            start_timer,
-            pause_timer,
-            reset_timer,
-            set_total_seconds,
-            trigger_notification
-        ])
+        .invoke_handler(tauri::generate_handler![start_timer, pause_timer, reset_timer, set_total_seconds, trigger_notification, ping])
         .run(tauri::generate_context!())
         .expect("启动 Tauri 应用失败");
 }

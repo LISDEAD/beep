@@ -27,3 +27,8 @@ ignore = ["Cargo.lock", "dist/"]  # 忽略生成目录，避免循环触发
 [serve]
 port = 1420
 open = false
+# 设置正确的MIME类型
+default_mime = "application/octet-stream"
+[serve.mime_types]
+"wasm" = "application/wasm"
+"js" = "application/javascript"

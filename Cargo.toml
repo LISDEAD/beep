@@ -11,38 +11,46 @@ leptos_meta = { version = "0.8.5" }
 leptos_macro = "0.8.5"
 leptos_router = { version = "0.8.5" }
 leptos_dom = "0.8.5"
+wasm-bindgen = "0.2"
+# 通用依赖
+console_log = "1.0.0"
+yansi = "1.0.1"
+log = "0.4.27"
 
-# Tauri核心依赖
-# tauri = { version = "2.7.0"} 
-# 前端交互所需的 WASM 绑定
-# tauri-wasm = "2.7.0"
+# Tauri核心依赖 - 仅在非WASM目标编译
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tauri = { version = "2.7.0" }
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# WebAssembly特定依赖
+console_error_panic_hook = "0.1.7"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
-js-sys = "0.3.77" 
-
-
-chrono = { version = "0.4", features = ["serde"] }
-serde = { version = "1", features = ["derive"] }
-serde-wasm-bindgen = "0.6"
-
+js-sys = "0.3.77"
 web-sys = { version = "0.3", features = [
     "CanvasRenderingContext2d",
     "HtmlCanvasElement",
     "Window",
     "Document",
-    "HtmlElement"
+    "HtmlElement",
+    "Event",
+    "HtmlInputElement",
+    "console"
 ] }
-console_error_panic_hook = "0.1.7"
-console_log = "1.0.0"
-yansi = "1.0.1"
-log = "0.4.27"
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde-wasm-bindgen = "0.6"
 
 
 [workspace]
 members = ["src-tauri"]
 
+# 特性定义
+[features]
+# 添加tauri特性以消除警告
+tauri = []
+
 # 开发依赖
+
 [dev-dependencies]
-console_log = "1.0.0"
 console_error_panic_hook = "0.1.7"

@@ -4,7 +4,7 @@
   "version": "0.0.2",
   "identifier": "co.beep.tda",
   "build": {
-    "beforeDevCommand": "npx tailwindcss -i styles.css -o dist/tailwind.css --minify && trunk serve --verbose",
+    "beforeDevCommand": "npx tailwindcss -i styles.css -o dist/tailwind.css --minify && trunk serve --port 1420",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npx tailwindcss -i styles.css -o dist/tailwind.css --minify && trunk build",
     "frontendDist": "../dist"
@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+      "csp": "default-src 'self'; script-src 'self' https://cdn.tauri.app; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
     }
   },
   "bundle": {

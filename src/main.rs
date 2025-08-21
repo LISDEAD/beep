@@ -1,6 +1,11 @@
-mod app; // 声明 app 模块
+// 声明所有模块
+mod app;
+mod tauri_utils;
+mod timer_logic;
+mod wasm_specific;
+mod dummy_web_imports;
 
-use app::App; // 导入名为 APP 的组件
+use app::App; // 导入 App 组件
 use leptos::prelude::*;
 
 fn main() {

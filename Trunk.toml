@@ -17,8 +17,8 @@ paths = [
   "./tailwind.config.js"
 ]
 # 确保命令能在 Windows 上正确执行（使用 npx 避免路径问题）
-before_build = ["npx tailwindcss -i styles.css -o dist/tailwind.css --minify"]
-command = "npx tailwindcss -i styles.css -o dist/tailwind.css --minify"
+before_build = ["npx tailwindcss -i styles.css -o dist/tailwind.css --minify --postcss postcss.config.js"]
+command = "npx tailwindcss -i styles.css -o dist/tailwind.css --minify --postcss postcss.config.js"
 ignore = ["Cargo.lock", "dist/"]  # 忽略生成目录，避免循环触发
 
 # 监听的文件路径

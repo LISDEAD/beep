@@ -1,11 +1,12 @@
 use leptos::prelude::*;
 use wasm_bindgen::{JsValue, JsCast};
 use wasm_bindgen::closure::Closure;
-use leptos::web_sys::{Event, HtmlInputElement};
+use leptos::web_sys::{Event, HtmlInputElement, window, console};
 use std::sync::{Arc, Mutex};
 use crate::timer_logic::TimerState;
-use js_sys::Reflect;
 use wasm_bindgen_futures::spawn_local;
+use leptos::prelude::request_animation_frame;
+
 
 // 创建一个新类型包装器以安全地实现Send和Sync
 pub struct SyncClosure(Closure<dyn FnMut(Event)>);
@@ -18,51 +19,46 @@ unsafe impl Sync for SyncClosure {}
 
 // 设置计时器更新事件监听
 pub fn setup_timer_event_listener(timer_state: &Arc<Mutex<TimerState>>) {
-    if let Some(window) = leptos::web_sys::window() {
-        let timer_state_borrowed = timer_state.lock().unwrap();
-        let remaining = timer_state_borrowed.remaining_seconds.clone();
-        let set_remaining = timer_state_borrowed.set_remaining_seconds.clone();
-        let set_running = timer_state_borrowed.set_is_running.clone();
+    if let Some(window) = window() {
+        // 创建一个新的Arc引用，用于在闭包中使用
+        let timer_state_clone = Arc::clone(timer_state);
 
         // 创建事件回调
-        // 使用Arc和Mutex管理闭包生命周期以满足Send + Sync约束
-        let closure = Arc::new(
-            Mutex::new(
-                Some(
-                    SyncClosure(
-                        Closure::wrap(Box::new(move |event: Event| {
-                            let _ = js_sys::Reflect::get(&event, &JsValue::from_str("detail"))
-                                .and_then(|detail| {
-                                    detail
-                                        .as_f64()
-                                        .ok_or(JsValue::from_str("detail is not a number"))
-                                })
-                                .map(|value| {
-                                    set_remaining.set(value as u32);
-                                    if value == 0.0 {
-                                        set_running.set(false);
-                                    }
-                                });
-                        }))
-                    )
-                )
-            )
-        );
-
-        // 获取回调函数引用
-        let locked_closure = closure.lock().unwrap();
-        let some_closure = locked_closure.as_ref().unwrap();
-        let inner_closure = &some_closure.0;
-        let js_callback = inner_closure.as_ref().unchecked_ref::<js_sys::Function>();
-        let _ = window.add_event_listener_with_callback("timer_update", js_callback);
-
-        // 使用wasm_spawn_local确保在WebAssembly主线程中执行清理
-        let closure_clone = Arc::clone(&closure);
-        wasm_bindgen_futures::spawn_local(async move {
-            if let Some(closure) = closure_clone.lock().unwrap().take() {
-                closure.0.forget();
+        let closure = Closure::wrap(Box::new(move |event: Event| {
+            // 从事件中获取detail属性
+            if let Ok(detail_value) = js_sys::Reflect::get(&event, &JsValue::from_str("detail")) {
+                if let Some(remaining_seconds) = detail_value.as_f64() {
+                    // 转换为u32
+                    let seconds = remaining_seconds as u32;
+                    
+                    // 创建一个新的克隆用于动画帧内部
+                    let timer_state_clone2 = Arc::clone(&timer_state_clone);
+                    
+                    // 使用Leptos的request_animation_frame确保在正确的响应式上下文中更新
+                    request_animation_frame(move || {
+                        // 安全地获取TimerState并更新
+                        if let Ok(mut timer_state) = timer_state_clone2.lock() {
+                            // 在响应式上下文中更新信号
+                            timer_state.set_remaining_seconds.set(seconds);
+                            
+                            // 当倒计时结束时，设置is_running为false
+                            if remaining_seconds == 0.0 {
+                                timer_state.set_is_running.set(false);
+                            }
+                        }
+                    });
+                }
             }
-        });
+        }) as Box<dyn FnMut(Event)>);
+
+        // 获取回调函数引用并添加事件监听器
+        let js_callback = closure.as_ref().unchecked_ref::<js_sys::Function>();
+        if let Err(err) = window.add_event_listener_with_callback("timer_update", js_callback) {
+            console::error_1(&JsValue::from(format!("Failed to add event listener: {:?}", err)));
+        }
+
+        // 防止闭包被垃圾回收
+        closure.forget();
     }
 }
 

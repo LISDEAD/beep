@@ -5,34 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>90分钟圆环倒计时</title>
-    <link data-trunk rel="css" href="./dist/tailwind.css">
+    <link data-trunk rel="css" href="./styles.css">
 </head>
 <body>
-    <!-- 加载工具函数 -->
-    <script src="src/utils.js"></script>
-    <!-- 加载Tauri脚本 -->
-    <script src="src/tauri-loader.js"></script>
-    <!-- 加载WebAssembly初始化脚本 -->
-    <script src="src/wasm-initializer.js"></script>
-    <script>
-        // 等待页面加载完成
-        document.addEventListener('DOMContentLoaded', () => {
-            // 加载Tauri脚本
-            loadTauriScript().then(tauri => {
-                console.log('Tauri已加载', tauri);
-            }).catch(error => {
-                console.error('加载Tauri失败:', error);
-            });
-
-            // 初始化WebAssembly
-            if (window.setupWebAssembly) {
-                window.setupWebAssembly();
-            } else if (window.initWebAssembly) {
-                window.initWebAssembly();
-            } else {
-                console.error('WebAssembly初始化函数未定义');
-            }
-        });
-    </script>
+    <!-- 构建后会自动注入正确的脚本引用 -->
 </body>
 </html>

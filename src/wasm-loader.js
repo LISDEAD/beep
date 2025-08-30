@@ -11,6 +11,13 @@ import { validateWasmMagicNumber, isHtmlResponse, createWbgProxy, instantiateWas
  */
 async function initWebAssembly(customPath = null) {
     try {
+        // 检查Tauri是否已经初始化
+        if (!window.__TAURI__ || typeof window.__TAURI__ !== 'object' || typeof window.__TAURI__.invoke !== 'function') {
+            console.error('Tauri尚未初始化或invoke函数不可用');
+            throw new Error('Tauri尚未初始化或invoke函数不可用');
+        }
+        console.log('Tauri已初始化，invoke函数可用');
+
         // 检查是否已经初始化
         if (window.wasm && typeof window.wasm === 'object') {
             console.log('WASM模块已经初始化');
@@ -18,7 +25,7 @@ async function initWebAssembly(customPath = null) {
         }
 
         // 使用提供的路径或默认路径
-        const wasmUrl = customPath || '/dist/beep-ui-7eb184cf2d003b81_bg.wasm';
+        const wasmUrl = customPath || '/dist/beep-ui-f56b00a42596b95c_bg.wasm';
         console.log(`尝试加载WASM文件: ${wasmUrl}`);
 
         // 获取WASM二进制文件

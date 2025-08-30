@@ -4,11 +4,11 @@
 // 验证模块路径是否有效
 function validateModulePath(modulePath) {
     // 简单验证路径格式
-    if (!path || typeof path !== 'string') {
+    if (!modulePath || typeof modulePath !== 'string') {
         return false;
     }
     // 检查是否是有效的WASM或JS文件路径
-    return path.endsWith('.wasm') || path.endsWith('.js');
+    return modulePath.endsWith('.wasm') || modulePath.endsWith('.js');
 }
 
 // 检查响应状态

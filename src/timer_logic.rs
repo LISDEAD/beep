@@ -1,5 +1,5 @@
-use leptos::prelude::*;
 use crate::tauri_utils::call_backend;
+use leptos::prelude::*;
 
 // 根据目标架构导入不同的模块
 #[cfg(target_arch = "wasm32")]
@@ -14,11 +14,11 @@ pub const TOTAL_SECONDS: u32 = 60;
 // 计时器状态管理
 #[derive(Clone)]
 pub struct TimerState {
-    pub remaining_seconds: Signal<u32>,
+    pub remaining_seconds: ReadSignal<u32>,
     pub set_remaining_seconds: WriteSignal<u32>,
-    pub is_running: Signal<bool>,
+    pub is_running: ReadSignal<bool>,
     pub set_is_running: WriteSignal<bool>,
-    pub total_seconds: Signal<u32>,
+    pub total_seconds: ReadSignal<u32>,
     pub set_total_seconds: WriteSignal<u32>,
 }
 
@@ -30,11 +30,11 @@ impl TimerState {
         let (total_seconds, set_total_seconds) = signal(TOTAL_SECONDS);
 
         Self {
-            remaining_seconds: remaining_seconds.into(),
+            remaining_seconds,
             set_remaining_seconds,
-            is_running: is_running.into(),
+            is_running,
             set_is_running,
-            total_seconds: total_seconds.into(),
+            total_seconds,
             set_total_seconds,
         }
     }
@@ -72,8 +72,8 @@ impl TimerState {
     // 计算圆环进度
     pub fn stroke_dashoffset(&self) -> f64 {
         let circumference = 2.0 * std::f64::consts::PI * 100.0;
-        let remaining = self.remaining_seconds.get() as f64;
-        let total = self.total_seconds.get() as f64;
+        let remaining = self.remaining_seconds.with(|value| *value) as f64;
+        let total = self.total_seconds.with(|value| *value) as f64;
 
         if total == 0.0 {
             0.0
